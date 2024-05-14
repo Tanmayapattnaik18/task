@@ -1,0 +1,105 @@
+<DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Task Manager</title>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+  <script src="https://www.unpkg.com/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://www.unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script type="text/babel">
+    const { useState } = React;
+
+    function TaskManager() {
+      const [tasks, setTasks] = useState([]);
+      const [filterAssignee, setFilterAssignee] = useState('');
+      
+      const fetchTasks = async () => {
+        try {
+          const response = await axios.get('http://localhost:3000/todos');
+          setTasks(response.data);
+        } catch (error) {
+          console.error('Error fetching tasks:', error);
+        }
+      };
+      
+      const addTask = async (newTask) => {
+        try {
+          await axios.post('http://localhost:3000/todos', newTask);
+          fetchTasks();
+        } catch (error) {
+          console.error('Error adding task:', error);
+        }
+      };
+      
+      const updateTask = async (taskId, updatedTask) => {
+        try {
+          await axios.put(`http://localhost:3000/todos/${taskId}`, updatedTask);
+          fetchTasks();
+        } catch (error) {
+          console.error('Error updating task:', error);
+        }
+      };
+      
+      const deleteTask = async (taskId) => {
+        try {
+          await axios.delete(`http://localhost:3000/todos/${taskId}`);
+          fetchTasks();
+        } catch (error) {
+          console.error('Error deleting task:', error);
+        }
+      };
+      
+      const filterTasksByAssignee = (assignee) => {
+        setFilterAssignee(assignee);
+      };
+      
+      const renderTasks = () => {
+        let filteredTasks = tasks;
+        if (filterAssignee) {
+          filteredTasks = filteredTasks.filter(task => task.assignee === filterAssignee);
+        }
+        return filteredTasks.map(task => (
+          <div key={task.id}>
+            <span>{task.title}</span>
+            <button onClick={() => deleteTask(task.id)}>Delete</button>
+          </div>
+        ));
+      };
+
+      return (
+        <div>
+          <h1>Task Manager</h1>
+          <button onClick={fetchTasks}>Get all tasks</button>
+          <button onClick={() => filterTasksByAssignee('')}>Show all tasks</button>
+          <button onClick={() => filterTasksByAssignee('')}>Show incomplete tasks</button>
+          <input type="text" placeholder="Assignee name" onChange={(e) => filterTasksByAssignee(e.target.value)} />
+          <div>
+            {renderTasks()}
+          </div>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const newTask = {
+              title: formData.get('title'),
+              isCompleted: false, // Set default value
+              assignee: formData.get('assignee')
+            };
+            addTask(newTask);
+          }}>
+            <input type="text" name="title" placeholder="Task title" required />
+            <input type="text" name="assignee" placeholder="Assignee" required />
+            <button type="submit">Add Task</button>
+          </form>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<TaskManager />, document.getElementById('root'));
+  </script>
+</html>
